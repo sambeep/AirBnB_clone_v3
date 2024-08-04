@@ -18,6 +18,7 @@ import json
 import os
 import pep8
 import unittest
+
 DBStorage = db_storage.DBStorage
 classes = {"Amenity": Amenity, "City": City, "Place": Place,
            "Review": Review, "State": State, "User": User}
@@ -40,8 +41,7 @@ class TestDBStorageDocs(unittest.TestCase):
     def test_pep8_conformance_test_db_storage(self):
         """Test tests/test_models/test_db_storage.py conforms to PEP8."""
         pep8s = pep8.StyleGuide(quiet=True)
-        result = pep8s.check_files(['tests/test_models/test_engine/\
-test_db_storage.py'])
+        result = pep8s.check_files(['tests/test_models/test_engine/test_db_storage.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
@@ -68,21 +68,73 @@ test_db_storage.py'])
                             "{:s} method needs a docstring".format(func[0]))
 
 
-class TestFileStorage(unittest.TestCase):
-    """Test the FileStorage class"""
+class TestDBStorage(unittest.TestCase):
+    """Test the DBStorage class"""
+    @classmethod
+    def setUpClass(cls):
+        """Set up for the tests"""
+        cls.storage = DBStorage()
+        cls.storage.reload()  # Load the existing data
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down after tests"""
+        # Clean up any data in the database if necessary
+        # This depends on how the database is managed in your environment
+        pass
+
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_returns_dict(self):
-        """Test that all returns a dictionaty"""
-        self.assertIs(type(models.storage.all()), dict)
+        """Test that all returns a dictionary"""
+        self.assertIs(type(self.storage.all()), dict)
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_all_no_class(self):
         """Test that all returns all rows when no class is passed"""
+        all_objs = self.storage.all()
+        self.assertIsInstance(all_objs, dict)
+        for cls in classes.values():
+            for obj in self.storage.all(cls).values():
+                self.assertIsInstance(obj, cls)
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_new(self):
-        """test that new adds an object to the database"""
+        """Test that new adds an object to the database"""
+        new_user = User(name="John Doe")
+        self.storage.new(new_user)
+        self.storage.save()
+        all_users = self.storage.all(User)
+        self.assertIn(new_user.id, all_users)
+        self.assertEqual(all_users[new_user.id], new_user)
 
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_save(self):
-        """Test that save properly saves objects to file.json"""
+        """Test that save properly saves objects to the database"""
+        new_user = User(name="Jane Doe")
+        self.storage.new(new_user)
+        self.storage.save()
+        all_users = self.storage.all(User)
+        self.assertIn(new_user.id, all_users)
+        self.assertEqual(all_users[new_user.id], new_user)
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_get(self):
+        """Test that get retrieves an object based on class and ID"""
+        new_user = User(name="John Doe")
+        self.storage.new(new_user)
+        self.storage.save()
+        retrieved_user = self.storage.get(User, new_user.id)
+        self.assertEqual(retrieved_user, new_user)
+        self.assertIsNone(self.storage.get(User, "invalid_id"))
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_count(self):
+        """Test that count returns the number of objects in storage"""
+        initial_count = self.storage.count(User)
+        new_user1 = User(name="John Doe")
+        new_user2 = User(name="Jane Doe")
+        self.storage.new(new_user1)
+        self.storage.new(new_user2)
+        self.storage.save()
+        self.assertEqual(self.storage.count(User), initial_count + 2)
+        self.assertEqual(self.storage.count(), initial_count + 2)

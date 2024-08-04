@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Contains the TestFileStorageDocs classes
+Contains the TestFileStorageDocs and TestFileStorage classes.
 """
 
 from datetime import datetime
@@ -18,6 +18,7 @@ import json
 import os
 import pep8
 import unittest
+
 FileStorage = file_storage.FileStorage
 classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
            "Place": Place, "Review": Review, "State": State, "User": User}
@@ -40,8 +41,7 @@ class TestFileStorageDocs(unittest.TestCase):
     def test_pep8_conformance_test_file_storage(self):
         """Test tests/test_models/test_file_storage.py conforms to PEP8."""
         pep8s = pep8.StyleGuide(quiet=True)
-        result = pep8s.check_files(['tests/test_models/test_engine/\
-test_file_storage.py'])
+        result = pep8s.check_files(['tests/test_models/test_engine/test_file_storage.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
@@ -80,7 +80,7 @@ class TestFileStorage(unittest.TestCase):
 
     @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
     def test_new(self):
-        """test that new adds an object to the FileStorage.__objects attr"""
+        """Test that new adds an object to the FileStorage.__objects attr"""
         storage = FileStorage()
         save = FileStorage._FileStorage__objects
         FileStorage._FileStorage__objects = {}
@@ -113,3 +113,27 @@ class TestFileStorage(unittest.TestCase):
         with open("file.json", "r") as f:
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get(self):
+        """Test that get retrieves an object based on class and ID"""
+        storage = FileStorage()
+        user = User(name="John Doe")
+        storage.new(user)
+        storage.save()
+        retrieved_user = storage.get(User, user.id)
+        self.assertEqual(retrieved_user, user)
+        self.assertIsNone(storage.get(User, "invalid_id"))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count(self):
+        """Test that count returns the number of objects in storage"""
+        storage = FileStorage()
+        initial_count = storage.count(User)
+        user1 = User(name="John Doe")
+        user2 = User(name="Jane Doe")
+        storage.new(user1)
+        storage.new(user2)
+        storage.save()
+        self.assertEqual(storage.count(User), initial_count + 2)
+        self.assertEqual(storage.count(), initial_count + 2)
