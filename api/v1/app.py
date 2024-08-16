@@ -23,10 +23,7 @@ def teardown_flask(exception):
 
 @app.errorhandler(404)
 def page_not_found(error):
-    """
-    Custom handler for 404 errors, returns JSON response with error message.
-    """
-    return jsonify(error="Not found"), 404
+    return (jsonify(error="Not found"), 404)
 
 if __name__ == "__main__":
     host = getenv("HBNB_API_HOST", "0.0.0.0")
